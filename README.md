@@ -6,7 +6,7 @@
 - Blog: evankale.blogspot.ca
 - YouTube: youtube.com/EvanKale91
 
-Arduino code for a Colpitts oscialltor based metal detector.
+Arduino code for a Colpitts oscillator based metal detector.
 
 See build tutorial & demo here:
 https://youtu.be/KCGe9KNAWGM
