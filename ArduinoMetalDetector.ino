@@ -39,10 +39,10 @@
 #define RESET_BTN_PIN 12
 
 unsigned long lastSignalTime = 0;
-unsigned long signalTimeDelta = 0;
+long signalTimeDelta = 0;
 
 boolean firstSignal = true;
-unsigned long storedTimeDelta = 0;
+long storedTimeDelta = 0;
 
 // This signal is called whenever OCR1A reaches 0
 // (Note: OCR1A is decremented on every external clock cycle)
@@ -91,8 +91,9 @@ void loop()
   if (digitalRead(TRIGGER_BTN_PIN) == LOW)
   {
     float sensitivity = mapFloat(analogRead(SENSITIVITY_POT_APIN), 0, 1023, 0.5, 10.0);
-    int storedTimeDeltaDifference = (storedTimeDelta - signalTimeDelta) * sensitivity;
-    tone(SPEAKER_PIN, BASE_TONE_FREQUENCY + storedTimeDeltaDifference);
+    int storedTimeDeltaDifference = storedTimeDelta - signalTimeDelta;
+    unsigned int toneFrequency = BASE_TONE_FREQUENCY + abs(storedTimeDeltaDifference) * sensitivity;
+    tone(SPEAKER_PIN, toneFrequency);
 
     if (storedTimeDeltaDifference > SPINNER_THRESHOLD)
     {
