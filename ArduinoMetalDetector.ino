@@ -120,4 +120,3 @@ float mapFloat(int input, int inMin, int inMax, float outMin, float outMax)
   float scale = (float)(input - inMin) / (inMax - inMin);
   return ((outMax - outMin) * scale) + outMin;
 }
-
