@@ -44,8 +44,8 @@ long signalTimeDelta = 0;
 boolean firstSignal = true;
 long storedTimeDelta = 0;
 
-// This signal is called whenever OCR1A reaches 0
-// (Note: OCR1A is decremented on every external clock cycle)
+// This signal is called when the timer value TCNT1 reaches OCR1A
+// (Note: TCNT1 is incremented on every external clock cycle)
 SIGNAL(TIMER1_COMPA_vect)
 {
   unsigned long currentTime = micros();
@@ -61,7 +61,7 @@ SIGNAL(TIMER1_COMPA_vect)
     storedTimeDelta = signalTimeDelta;
   }
 
-  // Reset OCR1A
+  // Move OCR1A value ahead
   OCR1A += CYCLES_PER_SIGNAL;
 }
 
