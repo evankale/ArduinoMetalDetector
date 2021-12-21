@@ -23,6 +23,7 @@
  */
 
 // Number of cycles from external counter needed to generate a signal event
+// Larger number: Better resolution and longer aquisition time. Max value 65535 (16 bit)
 #define CYCLES_PER_SIGNAL 5000
 
 // Base tone frequency (speaker)
@@ -39,46 +40,46 @@
 #define RESET_BTN_PIN 12
 
 unsigned long lastSignalTime = 0;
-unsigned long signalTimeDelta = 0;
+long signalTimeDelta = 0;
+long storedTimeDelta = 0;
 
-boolean firstSignal = true;
-unsigned long storedTimeDelta = 0;
-
-// This signal is called whenever OCR1A reaches 0
-// (Note: OCR1A is decremented on every external clock cycle)
+// This signal is called when the timer value TCNT1 reaches OCR1A
+// (Note: TCNT1 is incremented on every external clock cycle)
 SIGNAL(TIMER1_COMPA_vect)
 {
   unsigned long currentTime = micros();
   signalTimeDelta =  currentTime - lastSignalTime;
   lastSignalTime = currentTime;
 
-  if (firstSignal)
-  {
-    firstSignal = false;
-  }
-  else if (storedTimeDelta == 0)
+  if (storedTimeDelta == 0)
   {
     storedTimeDelta = signalTimeDelta;
   }
 
-  // Reset OCR1A
+  // Move OCR1A value ahead
   OCR1A += CYCLES_PER_SIGNAL;
 }
 
 void setup()
 {
   // Set WGM(Waveform Generation Mode) to 0 (Normal)
+  // Timer runs from 0x00 to 0xFFFF and overruns
   TCCR1A = 0b00000000;
   
   // Set CSS(Clock Speed Selection) to 0b111 (External clock source on T0 pin
   // (ie, pin 5 on UNO). Clock on rising edge.)
   TCCR1B = 0b00000111;
-
+  
+  // Reset counter and start measuring time
+  TCNT1 = 0;
+  OCR1A = CYCLES_PER_SIGNAL;
+  lastSignalTime = micros();
+  
+  // Clear interrupt flag by setting OCF1A high
+  TIFR1 |= (1 << OCF1A);
+  
   // Enable timer compare interrupt A (ie, SIGNAL(TIMER1_COMPA_VECT))
   TIMSK1 |= (1 << OCIE1A);
-
-  // Set OCR1A (timer A counter) to 1 to trigger interrupt on next cycle
-  OCR1A = 1;
 
   pinMode(SPEAKER_PIN, OUTPUT);
   pinMode(SPINNER_PIN, OUTPUT);
@@ -91,8 +92,9 @@ void loop()
   if (digitalRead(TRIGGER_BTN_PIN) == LOW)
   {
     float sensitivity = mapFloat(analogRead(SENSITIVITY_POT_APIN), 0, 1023, 0.5, 10.0);
-    int storedTimeDeltaDifference = (storedTimeDelta - signalTimeDelta) * sensitivity;
-    tone(SPEAKER_PIN, BASE_TONE_FREQUENCY + storedTimeDeltaDifference);
+    int storedTimeDeltaDifference = storedTimeDelta - signalTimeDelta;
+    unsigned int toneFrequency = BASE_TONE_FREQUENCY + abs(storedTimeDeltaDifference) * sensitivity;
+    tone(SPEAKER_PIN, toneFrequency);
 
     if (storedTimeDeltaDifference > SPINNER_THRESHOLD)
     {
@@ -120,4 +122,3 @@ float mapFloat(int input, int inMin, int inMax, float outMin, float outMax)
   float scale = (float)(input - inMin) / (inMax - inMin);
   return ((outMax - outMin) * scale) + outMin;
 }
-
